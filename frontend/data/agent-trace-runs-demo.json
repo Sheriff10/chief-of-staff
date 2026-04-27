@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "id": "trace-invoice-01",
+      "title": "Q2 invoice bundle",
+      "preview": "Triaged inbox, drafted vendor reply, queued approval.",
+      "status": "completed",
+      "finished_label": "12m ago",
+      "output_label": "Draft reply + calendar hold",
+      "workflow": {
+        "schema_version": 1,
+        "nodes": [
+          { "id": "n1", "label": "Intent", "subtitle": "Classify request" },
+          { "id": "n2", "label": "Retrieve", "subtitle": "RAG + Gmail context" },
+          { "id": "n3", "label": "Draft", "subtitle": "Compose reply" },
+          { "id": "n4", "label": "Approval", "subtitle": "Human gate" },
+          { "id": "n5", "label": "Output", "subtitle": "Send / record" }
+        ],
+        "edges": [
+          { "from": "n1", "to": "n2" },
+          { "from": "n2", "to": "n3" },
+          { "from": "n3", "to": "n4" },
+          { "from": "n4", "to": "n5" }
+        ]
+      }
+    },
+    {
+      "id": "trace-notes-02",
+      "title": "Product sync notes",
+      "preview": "Summarized meeting, created follow-ups in Notion.",
+      "status": "completed",
+      "finished_label": "48m ago",
+      "output_label": "Notion page + Slack summary",
+      "workflow": {
+        "schema_version": 1,
+        "nodes": [
+          { "id": "a1", "label": "Intent", "subtitle": "Route to notes workflow" },
+          { "id": "a2", "label": "Retrieve", "subtitle": "Calendar + past notes" },
+          { "id": "a3", "label": "Summarize", "subtitle": "Extract actions" },
+          { "id": "a4", "label": "Tools", "subtitle": "Notion + MCP" },
+          { "id": "a5", "label": "Output", "subtitle": "Publish + notify" }
+        ],
+        "edges": [
+          { "from": "a1", "to": "a2" },
+          { "from": "a2", "to": "a3" },
+          { "from": "a3", "to": "a4" },
+          { "from": "a4", "to": "a5" }
+        ]
+      }
+    },
+    {
+      "id": "trace-digest-03",
+      "title": "Security digest",
+      "preview": "Archived low-priority thread, added filter rule.",
+      "status": "running",
+      "finished_label": "In progress",
+      "output_label": "Pending",
+      "workflow": {
+        "schema_version": 1,
+        "nodes": [
+          { "id": "b1", "label": "Intent", "subtitle": "Noise vs action" },
+          { "id": "b2", "label": "Policy", "subtitle": "User rules" },
+          { "id": "b3", "label": "Act", "subtitle": "Archive / label" },
+          { "id": "b4", "label": "Output", "subtitle": "Confirm" }
+        ],
+        "edges": [
+          { "from": "b1", "to": "b2" },
+          { "from": "b2", "to": "b3" },
+          { "from": "b3", "to": "b4" }
+        ]
+      }
+    },
+    {
+      "id": "trace-fan-out-04",
+      "title": "Branching demo (API shape)",
+      "preview": "One intent fans to two tools, then merges — tests non-linear JSON graphs.",
+      "status": "completed",
+      "finished_label": "Demo",
+      "output_label": "Merged summary",
+      "workflow": {
+        "schema_version": 1,
+        "nodes": [
+          { "id": "c1", "label": "Intent", "subtitle": "Route" },
+          { "id": "c2", "label": "Retrieve", "subtitle": "Context" },
+          { "id": "c3", "label": "Gmail tool", "subtitle": "Read" },
+          { "id": "c4", "label": "Calendar tool", "subtitle": "Free/busy" },
+          { "id": "c5", "label": "Merge", "subtitle": "Join results" },
+          { "id": "c6", "label": "Output", "subtitle": "Respond" }
+        ],
+        "edges": [
+          { "from": "c1", "to": "c2" },
+          { "from": "c2", "to": "c3" },
+          { "from": "c2", "to": "c4" },
+          { "from": "c3", "to": "c5" },
+          { "from": "c4", "to": "c5" },
+          { "from": "c5", "to": "c6" }
+        ]
+      }
+    }
+  ]
+}
