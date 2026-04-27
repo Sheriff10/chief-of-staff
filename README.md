@@ -37,7 +37,7 @@ Key capabilities:
 | Database | PostgreSQL (pgvector) |
 | Cache | Redis |
 | Voice | Groq Whisper STT + Edge TTS |
-| Infrastructure | AWS ECS Fargate, RDS, ElastiCache, Terraform |
+| Infrastructure | AWS ECS Fargate, RDS, ElastiCache, CloudFront, Terraform |
 
 ---
 
@@ -60,7 +60,10 @@ chief-of-staff/
 │   ├── jobs/          # APScheduler background jobs
 │   └── db/            # Session, migrations, constants
 │
-└── infra/             # Terraform — AWS ECS Fargate deployment
+├── infra/             # Terraform — AWS ECS Fargate + CloudFront deployment
+│
+└── scripts/           # Helper scripts
+    └── deploy-ecs-images.sh   # One-command build → push → ECS rollout
 ```
 
 ---
@@ -135,51 +138,67 @@ The app runs at `http://localhost:3000`.
 Infrastructure is managed with Terraform in `infra/`. It provisions:
 
 - **VPC** — public + private subnets across 2 AZs, NAT gateway
-- **ECS Fargate** — backend and frontend containerised services
-- **ALB** — separate load balancers for backend and frontend
+- **ECS Fargate** — backend and frontend containerised services behind ALBs
+- **CloudFront** — HTTPS edge distribution in front of each ALB
 - **ECR** — container registry for both images
 - **RDS PostgreSQL 16** — private subnet, encrypted, 7-day backups
 - **ElastiCache Redis 7** — private subnet
 
-### Steps
+### First-time setup
 
 ```bash
 cd infra
 cp terraform.tfvars.example terraform.tfvars
-# Fill in secrets in terraform.tfvars
+# Fill in all secrets in terraform.tfvars
 
 terraform init
 
-# Create ECR repos first so you can push images
+# Create ECR repos first so you can push images before the full apply
 terraform apply -target=aws_ecr_repository.backend -target=aws_ecr_repository.frontend
+```
 
-# Build and push images
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com
+### Build, push, and deploy — one command
 
-cd ../backend
-docker build -t <ecr-backend-url>:latest .
-docker push <ecr-backend-url>:latest
+The `scripts/deploy-ecs-images.sh` script handles the full deploy cycle: ECR login, Docker builds (injecting the correct `NEXT_PUBLIC_API_BASE_URL` at build time from Terraform state), image push, and ECS rolling deployment.
 
-cd ../frontend
-docker build --build-arg NEXT_PUBLIC_API_BASE_URL=http://<backend-alb-dns> -t <ecr-frontend-url>:latest .
-docker push <ecr-frontend-url>:latest
+```bash
+# Full deploy — build both images, push, and roll out new ECS tasks
+./scripts/deploy-ecs-images.sh
 
-# Deploy everything
-cd ../infra
+# Build + push only, skip the ECS rollout
+./scripts/deploy-ecs-images.sh --skip-ecs
+
+# Push a versioned tag instead of latest
+./scripts/deploy-ecs-images.sh --tag v1.2.3
+
+# Override AWS region (default: read from terraform.tfvars → us-east-1)
+AWS_REGION=eu-west-1 ./scripts/deploy-ecs-images.sh
+```
+
+**Requirements:** `docker`, `aws` CLI (authenticated), and `terraform` initialised with applied state in `infra/`.
+
+After the first `terraform apply`, Terraform prints the live URLs:
+
+```
+frontend_url = "https://<cloudfront-domain>"   ← your app URL
+backend_url  = "https://<cloudfront-domain>"   ← API URL
+```
+
+### Apply infrastructure changes only
+
+```bash
+cd infra
 terraform apply -var-file=terraform.tfvars
 ```
 
-After `apply`, Terraform prints:
-
-```
-frontend_url = "http://<alb-dns>"   ← your app URL
-backend_url  = "http://<alb-dns>"   ← API URL (use as NEXT_PUBLIC_API_BASE_URL)
-```
-
-### Updating a service
+### Manual ECS rollout (without the script)
 
 ```bash
-# Rebuild + push image, then trigger a rolling deploy
+aws ecs update-service \
+  --cluster chief-of-staff-prod-cluster \
+  --service chief-of-staff-prod-frontend \
+  --force-new-deployment
+
 aws ecs update-service \
   --cluster chief-of-staff-prod-cluster \
   --service chief-of-staff-prod-backend \

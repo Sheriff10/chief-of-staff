@@ -174,8 +174,9 @@ resource "aws_lb_target_group" "frontend" {
     interval            = 30
     timeout             = 10
     healthy_threshold   = 2
-    unhealthy_threshold = 3
-    matcher             = "200,301,302"
+    unhealthy_threshold = 5
+    # Next.js often responds with 307/308 on /; narrow matchers mark targets unhealthy → ALB 503.
+    matcher = "200-399"
   }
 
   tags = local.common_tags
@@ -234,6 +235,10 @@ resource "aws_ecs_task_definition" "backend" {
       { name = "NOTION_CLIENT_SECRET", value = var.notion_client_secret },
       { name = "VOYAGEAI_API_KEY", value = var.voyageai_api_key },
       { name = "GROQ_API_KEY", value = var.groq_api_key },
+      { name = "LANGSMITH_TRACING_V2", value = var.langsmith_tracing_enabled ? "true" : "false" },
+      { name = "LANGSMITH_API_KEY", value = var.langsmith_api_key },
+      { name = "LANGSMITH_PROJECT", value = var.langsmith_project },
+      { name = "LANGSMITH_ENDPOINT", value = var.langsmith_api_url },
     ]
 
     logConfiguration = {
@@ -312,11 +317,12 @@ resource "aws_ecs_task_definition" "frontend" {
     }
 
     healthCheck = {
-      command     = ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      # node is always present; avoids busybox wget's exit-1 on 3xx redirects.
+      command     = ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
       interval    = 30
       timeout     = 10
       retries     = 3
-      startPeriod = 20
+      startPeriod = 120
     }
   }])
 
@@ -329,6 +335,9 @@ resource "aws_ecs_service" "frontend" {
   task_definition = aws_ecs_task_definition.frontend.arn
   desired_count   = var.frontend_desired_count
   launch_type     = "FARGATE"
+
+  # Stop ELB from draining tasks while Next.js standalone is still starting.
+  health_check_grace_period_seconds = 150
 
   network_configuration {
     subnets          = aws_subnet.private[*].id

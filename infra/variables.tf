@@ -59,12 +59,12 @@ variable "backend_memory" {
 
 variable "frontend_cpu" {
   type    = number
-  default = 256
+  default = 512
 }
 
 variable "frontend_memory" {
   type    = number
-  default = 512
+  default = 1024
 }
 
 variable "backend_desired_count" {
@@ -144,6 +144,30 @@ variable "groq_api_key" {
   type      = string
   sensitive = true
   default   = ""
+}
+
+variable "langsmith_tracing_enabled" {
+  description = "When true and langsmith_api_key is set, send traces to LangSmith"
+  type        = bool
+  default     = false
+}
+
+variable "langsmith_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "langsmith_project" {
+  description = "LangSmith project name (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "langsmith_api_url" {
+  description = "LangSmith API URL override (optional)"
+  type        = string
+  default     = ""
 }
 
 # ── CloudFront ────────────────────────────────────────────────────────────────

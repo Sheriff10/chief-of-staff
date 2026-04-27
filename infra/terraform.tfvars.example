@@ -19,3 +19,9 @@ notion_client_id   = ""
 notion_client_secret = ""
 voyageai_api_key   = ""
 groq_api_key       = ""
+
+# LangSmith (optional — tracing in prod when key is set)
+# langsmith_tracing_enabled = true
+# langsmith_api_key         = ""
+# langsmith_project         = "chief-of-staff"
+# langsmith_api_url         = ""  # default: LangSmith cloud API

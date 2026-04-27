@@ -70,8 +70,9 @@ resource "aws_cloudfront_distribution" "backend" {
       https_port             = 443
       origin_protocol_policy = "http-only"
       origin_ssl_protocols     = ["TLSv1.2"]
-      # Long-running streaming responses (chat SSE, voice).
-      origin_read_timeout      = 180
+      # Origin read timeout: AWS allows 1–120 s without a quota increase; >120 needs Service Quotas.
+      # Long SSE/voice streams may hit this cap; raise quota if needed.
+      origin_read_timeout      = 120
       origin_keepalive_timeout = 60
     }
   }
