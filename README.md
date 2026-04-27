@@ -3,7 +3,6 @@
 An autonomous AI agent that manages your calendar, drafts emails, retrieves context from Notion, and helps you stay on top of tasks. Everything happens with your approval before any real-world action is taken.
 
 ---
-
 ## What it does
 
 You type (or speak) a request like:
